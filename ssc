@@ -1,44 +1,60 @@
--- Fungsi untuk menjalankan perintah ADB dan mendapatkan output
+-- Fungsi untuk menjalankan perintah shell
 local function runCommand(command)
-    -- Menjalankan perintah menggunakan os.execute dan mendapatkan hasilnya
-    local result = os.execute(command)
+    local handle = io.popen(command)
+    local result = handle:read("*a")
+    handle:close()
     return result
 end
 
-local function checkDevices()
-    print("Memeriksa perangkat ADB yang terhubung...")
-    local result = os.execute("adb devices")
-    if result then
-        print("Perangkat terdeteksi: " .. result)
-        return true
+-- Fungsi untuk memutuskan koneksi ADB
+local function disconnectADB()
+    print("Memutus koneksi ADB...")
+    local result = runCommand("adb disconnect")
+    print(result)
+end
+
+-- Fungsi untuk menghubungkan ADB menggunakan IP
+local function connectADB(ipAddress)
+    print("Menghubungkan ke perangkat dengan IP: " .. ipAddress)
+    local command = "adb connect " .. ipAddress
+    local result = runCommand(command)
+    print(result)
+end
+
+-- Fungsi untuk mendeteksi perangkat yang terhubung melalui jaringan
+local function detectDeviceIP()
+    print("Mendeteksi perangkat ADB yang terhubung di jaringan...")
+    local result = runCommand("adb devices")
+    local ipAddress = result:match("([%d%.]+:%d+)")  -- Menarik IP dan port perangkat
+    if ipAddress then
+        print("Perangkat ditemukan dengan IP: " .. ipAddress)
+        return ipAddress
     else
         print("Tidak ada perangkat ADB yang terhubung.")
         return nil
     end
 end
 
-local function takeScreenshotOnDevice(device, devicePath)
-    print("Mengambil screenshot di perangkat " .. device .. "...")
-    local command = "adb -s " .. device .. " shell screencap -p " .. devicePath
-    local result = os.execute(command)
-    if result == 0 then
-        print("Screenshot berhasil diambil di path: " .. devicePath)
-        return true
+-- Fungsi untuk mengambil screenshot
+local function takeScreenshot(outputPath)
+    print("Mengambil screenshot...")
+    local command = "adb exec-out screencap -p > " .. outputPath
+    local result = runCommand(command)
+    if result == "" then
+        print("Screenshot berhasil disimpan di " .. outputPath)
     else
-        print("Gagal mengambil screenshot.")
-        return false
+        print("Gagal mengambil screenshot. Pesan: " .. result)
     end
 end
 
--- Cek perangkat yang terhubung
-local device = checkDevices()
-if device then
-    local devicePath = "/sdcard/screenshot.png" -- Path di perangkat
-    if takeScreenshotOnDevice(device, devicePath) then
-        print("Screenshot berhasil disimpan di perangkat.")
-    else
-        print("Proses screenshot gagal.")
-    end
+-- Proses Deteksi dan Penghubungan
+disconnectADB()  -- Memutuskan koneksi ADB terlebih dahulu
+
+local deviceIP = detectDeviceIP()  -- Mendeteksi perangkat dan IP
+if deviceIP then
+    connectADB(deviceIP)  -- Menghubungkan ke perangkat berdasarkan IP
+    local outputPath = "screenshot.png"  -- Path untuk menyimpan screenshot
+    takeScreenshot(outputPath)  -- Mengambil screenshot
 else
-    print("Tidak ada perangkat ADB yang terdeteksi. Script berhenti.")
+    print("Proses gagal. Tidak ada perangkat yang terdeteksi.")
 end
