@@ -11,29 +11,23 @@ local function disconnectADB()
     print(result)
 end
 
--- Fungsi untuk menghubungkan ADB menggunakan IP
-local function connectADB(ipAddress)
-    print("Menghubungkan ke perangkat dengan IP: " .. ipAddress)
-    local command = "adb connect " .. ipAddress
-    local result = runCommand(command)
-    print(result)
-end
-
--- Fungsi untuk mendeteksi perangkat yang terhubung melalui jaringan
-local function detectDeviceIP()
-    print("Mendeteksi perangkat ADB yang terhubung di jaringan...")
-    local result = os.execute("adb devices")
-    if result == 0 then
-        -- Kamu bisa mengecek hasilnya secara manual atau melalui log
-        print("Perangkat ditemukan.")
-        return true
+-- Fungsi untuk mendeteksi perangkat yang terhubung melalui USB
+local function detectDevice()
+    print("Mendeteksi perangkat ADB yang terhubung...")
+    -- Jalankan perintah adb devices untuk mendeteksi perangkat yang terhubung
+    local result = io.popen("adb devices"):read("*a")  -- Mengambil output adb devices
+    local device = result:match("([%w%-]+)%s+device")  -- Menarik ID perangkat dari output
+    
+    if device then
+        print("Perangkat ditemukan: " .. device)
+        return device
     else
         print("Tidak ada perangkat ADB yang terhubung.")
         return nil
     end
 end
 
--- Fungsi untuk mengambil screenshot
+-- Fungsi untuk mengambil screenshot dari perangkat
 local function takeScreenshot(outputPath)
     print("Mengambil screenshot...")
     local command = "adb exec-out screencap -p > " .. outputPath
@@ -41,16 +35,17 @@ local function takeScreenshot(outputPath)
     if result == 0 then
         print("Screenshot berhasil disimpan di " .. outputPath)
     else
-        print("Gagal mengambil screenshot. Pesan: " .. result)
+        print("Gagal mengambil screenshot.")
     end
 end
 
--- Proses Deteksi dan Penghubungan
+-- Proses Deteksi dan Pengambilan Screenshot
 disconnectADB()  -- Memutuskan koneksi ADB terlebih dahulu
 
-local deviceIP = detectDeviceIP()  -- Mendeteksi perangkat dan IP
-if deviceIP then
-    connectADB(deviceIP)  -- Menghubungkan ke perangkat berdasarkan IP
+-- Mendeteksi perangkat yang terhubung
+local device = detectDevice()
+if device then
+    -- Mengambil screenshot setelah perangkat terdeteksi
     local outputPath = "screenshot.png"  -- Path untuk menyimpan screenshot
     takeScreenshot(outputPath)  -- Mengambil screenshot
 else
