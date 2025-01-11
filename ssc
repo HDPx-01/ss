@@ -1,0 +1,41 @@
+local function runCommand(command)
+    local result = os.execute(command)
+    return result
+end
+
+local function checkDevices()
+    print("Memeriksa perangkat ADB yang terhubung...")
+    local result = os.execute("adb devices")
+    if result then
+        print("Perangkat terdeteksi: " .. result)
+        return true
+    else
+        print("Tidak ada perangkat ADB yang terhubung.")
+        return nil
+    end
+end
+
+local function takeScreenshotOnDevice(device, devicePath)
+    print("Mengambil screenshot di perangkat " .. device .. "...")
+    local command = "adb -s " .. device .. " shell screencap -p " .. devicePath
+    local result = os.execute(command)
+    if result == 0 then
+        print("Screenshot berhasil diambil di path: " .. devicePath)
+        return true
+    else
+        print("Gagal mengambil screenshot.")
+        return false
+    end
+end
+
+local device = checkDevices()
+if device then
+    local devicePath = "/sdcard/screenshot.png" -- Path di perangkat
+    if takeScreenshotOnDevice(device, devicePath) then
+        print("Screenshot berhasil disimpan di perangkat.")
+    else
+        print("Proses screenshot gagal.")
+    end
+else
+    print("Tidak ada perangkat ADB yang terdeteksi. Script berhenti.")
+end
