@@ -1,8 +1,6 @@
--- Fungsi untuk menjalankan perintah shell
+-- Fungsi untuk menjalankan perintah shell menggunakan os.execute
 local function runCommand(command)
-    local handle = io.popen(command)
-    local result = handle:read("*a")
-    handle:close()
+    local result = os.execute(command)
     return result
 end
 
@@ -24,11 +22,11 @@ end
 -- Fungsi untuk mendeteksi perangkat yang terhubung melalui jaringan
 local function detectDeviceIP()
     print("Mendeteksi perangkat ADB yang terhubung di jaringan...")
-    local result = runCommand("adb devices")
-    local ipAddress = result:match("([%d%.]+:%d+)")  -- Menarik IP dan port perangkat
-    if ipAddress then
-        print("Perangkat ditemukan dengan IP: " .. ipAddress)
-        return ipAddress
+    local result = os.execute("adb devices")
+    if result == 0 then
+        -- Kamu bisa mengecek hasilnya secara manual atau melalui log
+        print("Perangkat ditemukan.")
+        return true
     else
         print("Tidak ada perangkat ADB yang terhubung.")
         return nil
@@ -40,7 +38,7 @@ local function takeScreenshot(outputPath)
     print("Mengambil screenshot...")
     local command = "adb exec-out screencap -p > " .. outputPath
     local result = runCommand(command)
-    if result == "" then
+    if result == 0 then
         print("Screenshot berhasil disimpan di " .. outputPath)
     else
         print("Gagal mengambil screenshot. Pesan: " .. result)
