@@ -1,38 +1,56 @@
+-- Fungsi untuk menjalankan perintah shell dan mengembalikan output
 local function runCommand(command)
-    local result = os.execute(command)
+    local handle = io.popen(command)
+    local result = handle:read("*a")
+    handle:close()
     return result
 end
 
+-- Fungsi untuk memeriksa perangkat yang terhubung
 local function checkDevices()
     print("Memeriksa perangkat ADB yang terhubung...")
-    local result = os.execute("adb devices")
-    if result then
-        print("Perangkat terdeteksi: " .. result)
-        return true
+    local result = runCommand("adb devices")
+    print(result)
+    local device = result:match("([%w%-]+)%s+device")
+    if device then
+        print("Perangkat terdeteksi: " .. device)
+        return device
     else
         print("Tidak ada perangkat ADB yang terhubung.")
         return nil
     end
 end
 
+-- Fungsi untuk mengambil screenshot di perangkat
 local function takeScreenshotOnDevice(device, devicePath)
     print("Mengambil screenshot di perangkat " .. device .. "...")
     local command = "adb -s " .. device .. " shell screencap -p " .. devicePath
-    local result = os.execute(command)
-    if result == 0 then
+    local result = runCommand(command)
+    if result == "" then
         print("Screenshot berhasil diambil di path: " .. devicePath)
         return true
     else
-        print("Gagal mengambil screenshot.")
+        print("Gagal mengambil screenshot. Pesan: " .. result)
         return false
     end
 end
 
+-- Fungsi untuk memindahkan file screenshot ke komputer
+local function pullScreenshot(devicePath, localPath)
+    print("Memindahkan screenshot ke komputer...")
+    local command = "adb pull " .. devicePath .. " " .. localPath
+    local result = runCommand(command)
+    print(result)
+end
+
+-- Logika Utama
 local device = checkDevices()
 if device then
     local devicePath = "/sdcard/screenshot.png" -- Path di perangkat
+    local localPath = "screenshot.png"         -- Path di komputer
     if takeScreenshotOnDevice(device, devicePath) then
-        print("Screenshot berhasil disimpan di perangkat.")
+        pullScreenshot(devicePath, localPath)
+        print("Screenshot berhasil disimpan di " .. localPath)
     else
         print("Proses screenshot gagal.")
     end
